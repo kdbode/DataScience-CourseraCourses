@@ -1,15 +1,12 @@
 
-## Download and setup Data
-if(!file.exists("data")){dir.create("data")}
-fileUrl <- "https://d396qusza40orc.cloudfront.net/rprog%2Fdata%2FProgAssignment3-data.zip"
-download.file(fileUrl,destfile="data\\outcome-of-care.zip")
-
-## Unzip the file
-unzip(zipfile="./data/outcome-of-care.zip",exdir="./data")
+## If you need to grab download and unzip files
+#if(!file.exists("data")){dir.create("data")}
+#fileUrl <- "https://d396qusza40orc.cloudfront.net/rprog%2Fdata%2FProgAssignment3-data.zip"
+#download.file(fileUrl,destfile="data\\outcome-of-care.zip")
+#unzip(zipfile="./data/outcome-of-care.zip",exdir="./data")
 
 ## Load required library packages
 library(dplyr)
-
 
 best<- function(state,outcome){                                                     
     ## Takes arguments state (state ID) and outcome (heart attac, heart failure, pneumonia)
@@ -17,6 +14,7 @@ best<- function(state,outcome){
     base.data<- read.csv("./data/outcome-of-care-measures.csv", colClasses="character")
     states.tested<- unique(base.data$State)
       ## Look at which states have data on them
+    
     if(!sum(states.tested==state)==1){                                               
         stop("Invalid State Argument")
     }
