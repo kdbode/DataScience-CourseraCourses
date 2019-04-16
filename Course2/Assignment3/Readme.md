@@ -3,12 +3,14 @@ Write a function called best that take two arguments:  the 2-character abbreviat
 
 The function should use the following template.
 best <- function(state, outcome) {
-  Read outcome data
-  Check that state and outcome are valid
-  Return hospital name in that state with lowest 30-day death
-  rate}The function should check the validity of its arguments.  
- 
-If an invalid state value is passed to best,  the function should throw an error via the stop function with the exact message “invalid state”.  If an invalid outcome value is passed tobest, the function should throw an error via the stop function with the exact message “invalid outcome”.
+
+#Read outcome data
+
+#Check that state and outcome are valid
+
+#Return hospital name in that state with lowest 30-day death rate}
+
+The function should check the validity of its arguments. If an invalid state value is passed to best,  the function should throw an error via the stop function with the exact message “invalid state”.  If an invalid outcome value is passed tobest, the function should throw an error via the stop function with the exact message “invalid outcome”.
 
 
 Ranking hospitals by outcome in a state
@@ -23,9 +25,13 @@ Write a function called rankall that takes two arguments: an outcome name (outco
 
 The function should use the following template.
 rankall <- function(outcome, num = "best") {
-  Read outcome data
-  Check that state and outcome are valid
-  For each state, find the hospital of the given rank
-  Return a data frame with the hospital names and the (abbreviated) state name}
+
+#Read outcome data
+
+#Check that state and outcome are valid For each state
+
+#Find the hospital of the given rank
+
+#Return a data frame with the hospital names and the (abbreviated) state name}
   
 NOTE: For the purpose of this part of the assignment (and for efficiency), your function should NOT call therankhospital function from the previous section.The function should check the validity of its arguments.  If an invalid outcome value is passed to rankall,the function should throw an error via the stop function with the exact message “invalid outcome”.  The num variable can take values “best”, “worst”, or an integer indicating the ranking (smaller numbers are better). If the number given by num is larger than the number of hospitals in that state, then the function should return NA.
