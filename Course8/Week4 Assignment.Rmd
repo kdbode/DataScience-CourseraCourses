@@ -1,0 +1,131 @@
+---
+title: "Practical Machine Learning Assignment"
+author: "Kyle B"
+date: "1/23/2020"
+output: html_document
+---
+
+The fitbit data of six users was recorded while they performed five different exercises. The task given for this project was to utilize the raw data to create an effective model for predicting which of the exercises was done based on new raw data.
+
+The first step was to download and load the data into R.
+```{r setup}
+if(!file.exists("data")){dir.create("data")}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(fileUrl,destfile="data\\pml-training.csv")
+fileUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(fileUrl,destfile="data\\pml-testing.csv")
+trainingfile<- read.csv(file="pml-training.csv", sep=",", header=TRUE)
+testfile<- read.csv(file="pml-testing.csv", sep=",", header=TRUE)
+```
+
+
+Next I split the training data into two sets.
+```{r datasplit}
+set.seed(115)
+library(caret)
+index<- createDataPartition(trainingfile$classe, p=0.7, list=FALSE)
+train<- trainingfile[index,]
+val<- trainingfile[-index,]
+dim(train); dim(val)
+```
+
+
+I then wanted to reduce the number of predictors in the dataset before trying to make a model. I started by removing the "identification" columns which included data such as the names of the exercise performers and the timestamp of when the exercises were performed. This data will not help to accurately predict furture results.
+```{r sub.ids}
+subTrain<- train[-c(1:7)]
+subVal<- val[-c(1:7)]
+dim(subTrain); dim(subVal)
+```
+
+
+Next I removed the columns with nearly identical results for the majority of the data since that data would likely be of little use for prediction.
+```{r sub.nzv}
+index.nzv<- nearZeroVar(subTrain)
+subTrain1<- subTrain[,-index.nzv]
+subVal1<- subVal[,-index.nzv]
+dim(subTrain1); dim(subVal1)
+```
+
+
+When observing the data I also saw a lot of NA columns, so I removed all columns that had 95% or more NAs as observations.
+```{r sub.na}
+labelNA<- function(x){
+  ifelse(sum(is.na(x))/length(x) >= 0.95, TRUE, FALSE)
+}
+index.na<- sapply(subTrain1, FUN=labelNA, simplify="array")
+subTrain2<- subTrain1[,index.na==FALSE]
+subVal2<- subVal1[,index.na==FALSE]
+dim(subTrain2); dim(subVal2)
+```
+
+Before I built any models, I wanted to use principle component analysis to see if I could further reduce the number of predictors. I start plotting how much variance is accounted for by different components.
+```{r PCA1}
+subTrain3<- subTrain2[,-53]
+prComp<- prcomp(subTrain3, scale=TRUE)
+library(factoextra)
+fviz_eig(prComp)
+```
+
+
+I decided to only look at the principle components that explain at least 5% of the overall variance. In each of those components, I eliminated predictors that attributed less then 5% to the principle component result.
+```{r PCA2}
+PCpp<- 53
+for(i in 1:6){
+    PCpp<- c(PCpp, which(abs(prComp$rotation[,i]) >= 0.05, arr.ind=TRUE))
+}
+PCpp.clean<- sort(unique(PCpp), decreasing=FALSE)
+length(PCpp.clean); dim(subTrain2)
+```
+
+
+It turns out that using principle components with my criteria doesn't reduce the number of predictors, so I went forward with building models from my current dataset. I started by creating a random forest model and a confusion matrix using the validation dataset as my means of cross validation. 
+```{r mod.rf, cache=TRUE, include=FALSE}
+set.seed(1283)
+ctrlRF<- trainControl(method="cv", number=3, verboseIter=FALSE)
+mod.rf<- train(classe~., data=subTrain2, method="rf", trControl=ctrlRF)
+matrix.rf <- confusionMatrix(subVal2$classe, predict(mod.rf, subVal2))
+
+```
+
+
+Then I created a boosted tree model.
+```{r mod.gbm, cache=TRUE, include=FALSE}
+set.seed(15153)
+mod.gbm<- train(classe~., data=subTrain2, method="gbm")
+matrix.gbm <- confusionMatrix(subVal2$classe, predict(mod.gbm, subVal2))
+```
+
+
+And a bagging model.
+```{r mod.bag, cache=TRUE, include=FALSE}
+set.seed(17555)
+mod.bag<- train(classe~., data=subTrain2, method="treebag")
+matrix.bag <- confusionMatrix(subVal2$classe, predict(mod.bag, subVal2))
+```
+
+
+
+Then I compared the models to find the best overall one.
+```{r compare}
+matrix.rf$overall
+matrix.gbm$overall
+matrix.bag$overall
+```
+
+
+The above code indicates that the random forest is the best fitting model with the highest accuracy and kappa scores. I then used my model to predict the validation results and find the out of sample error for the model.
+```{r oos.error}
+subVal3<- subVal2[,-53]
+pred.val<- predict(mod.rf, subVal3)
+(1 - (sum(pred.val==subVal2$classe)/length(pred.val))) * 100
+```
+
+
+Due to the amount of data and number of predictors used I was not surprised by the accuracy of the model, but I was concerned that overfitting was likely to occur. Overfitting would lead to a high out of sample error rate, but as you can see above the out of sample error rate of ~0.6% is much lower then I expected. After discovering this I was happy with my model and decided to finally predict the exercise types using the raw testfile data that was missing that information. 
+```{r test.predict}
+subTest<- testfile[-c(1:7)]
+subTest1<- subTest[,-index.nzv]
+subTest2<- subTest1[,index.na==FALSE]
+testpred.rf<- predict(mod.rf, subTest2)
+testpred.rf
+```
